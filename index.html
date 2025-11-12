@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>فون اسٹوریج مینیجر</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #status { font-weight: bold; }
+    #fileList { border: 1px solid #ccc; padding: 10px; min-height: 200px; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+
+  <h1>فون فائل مینیجر</h1>
+  <p>اسٹیٹس: <span id="status">کنیکٹ ہو رہا ہے...</span></p>
+  <button id="getListBtn">فائل لسٹ ریفریش کریں</button>
+
+  <hr>
+  <h3>فائلیں:</h3>
+  <div id="fileList"></div>
+
+  <script>
+    // یہ اسکرپٹ براؤزر میں چلے گی
+    const socket = io(); // اپنے ورسل سرور سے خودبخود کنیکٹ ہو جائے گی
+
+    const statusEl = document.getElementById('status');
+    const getListBtn = document.getElementById('getListBtn');
+    const fileListEl = document.getElementById('fileList');
+
+    // --- سرور سے آنے والے ایونٹس سننا ---
+
+    socket.on('connect', () => {
+      statusEl.textContent = 'سرور (دفتر) سے کنیکٹ ہو گیا';
+      statusEl.style.color = 'green';
+    });
+
+    socket.on('server-sends-list-to-browser', (fileList) => {
+      statusEl.textContent = 'فائل لسٹ مل گئی!';
+      fileListEl.innerHTML = ''; // پرانی لسٹ صاف کریں
+      if (fileList.length === 0) {
+        fileListEl.innerHTML = 'کوئی فائل نہیں ملی';
+      } else {
+        fileList.forEach(file => {
+          fileListEl.innerHTML += `<div>${file}</div>`;
+        });
+      }
+    });
+
+    socket.on('server-error', (message) => {
+      statusEl.textContent = `خرابی: ${message}`;
+      statusEl.style.color = 'red';
+      if(message.includes('آف لائن')){
+        fileListEl.innerHTML = ''; // فون آف لائن ہے تو لسٹ صاف کر دیں
+      }
+    });
+
+    // --- سرور کو ایونٹس بھیجنا ---
+
+    getListBtn.addEventListener('click', () => {
+      statusEl.textContent = 'فون سے فائل لسٹ مانگی جا رہی ہے...';
+      socket.emit('browser-requests-list'); // سرور کو کہیں کہ لسٹ چاہیے
+    });
+
+  </script>
+</body>
+</html>
